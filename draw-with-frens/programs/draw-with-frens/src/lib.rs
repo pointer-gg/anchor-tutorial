@@ -21,23 +21,23 @@ pub mod draw_with_frens {
     ) -> Result<()> {
         // Validation
         if pos_x < MIN_POS || pos_x > MAX_POS {
-            return Err(ErrorCode::InvalidXCoordinate.into());
+            return Err(error!(ErrorCode::InvalidXCoordinate));
         }
 
         if pos_y < MIN_POS || pos_y > MAX_POS {
-            return Err(ErrorCode::InvalidYCoordinate.into());
+            return Err(error!(ErrorCode::InvalidYCoordinate));
         }
 
         if init_col_r < MIN_COL || init_col_r > MAX_COL {
-            return Err(ErrorCode::InvalidRColor.into());
+            return Err(error!(ErrorCode::InvalidRColor));
         }
 
         if init_col_b < MIN_COL || init_col_b > MAX_COL {
-            return Err(ErrorCode::InvalidBColor.into());
+            return Err(error!(ErrorCode::InvalidBColor));
         }
 
         if init_col_g < MIN_COL || init_col_g > MAX_COL {
-            return Err(ErrorCode::InvalidGColor.into());
+            return Err(error!(ErrorCode::InvalidGColor));
         }
 
         // Set values
@@ -53,8 +53,15 @@ pub mod draw_with_frens {
 }
 
 #[derive(Accounts)]
+#[instruction(pos_x: u8, pos_y: u8)]
 pub struct CreatePixel<'info> {
-    #[account(init, payer=user, space=Pixel::LEN)]
+    #[account(
+        init,
+        payer = user,
+        space = Pixel::LEN,
+        seeds = [b"pixel".as_ref(), [pos_x, pos_y].as_ref()],
+        bump
+    )]
     pub pixel: Account<'info, Pixel>,
     #[account(mut)]
     pub user: Signer<'info>,

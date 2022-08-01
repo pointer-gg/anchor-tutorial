@@ -12,44 +12,125 @@ describe("draw-with-frens", () => {
   const program = anchor.workspace.DrawWithFrens as Program<DrawWithFrens>;
 
   it("Can create a pixel", async () => {
-    const pixelKeypair = web3.Keypair.generate()
+    const x = 10
+    const y = 10
+
+    const [pixelPublicKey] = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("pixel"), Buffer.from([x, y])],
+      program.programId,
+    )
 
     await program.methods
-      .createPixel(10, 10, 0, 0, 255)
+      .createPixel(x, y, 0, 0, 255)
       .accounts({
-        pixel: pixelKeypair.publicKey,
+        pixel: pixelPublicKey,
         user: anchorProvider.wallet.publicKey,
         systemProgram: web3.SystemProgram.programId,
       })
-      .signers([pixelKeypair])
       .rpc()
 
-    const storedPixel = await program.account.pixel.fetch(pixelKeypair.publicKey)
-    assert.equal(storedPixel.posX, 10)
-    assert.equal(storedPixel.posY, 10)
+    const storedPixel = await program.account.pixel.fetch(pixelPublicKey)
+    assert.equal(storedPixel.posX, x)
+    assert.equal(storedPixel.posY, y)
     assert.equal(storedPixel.colR, 0)
     assert.equal(storedPixel.colG, 0)
     assert.equal(storedPixel.colB, 255)
   });
 
   it("Does not allow creating a pixel out of bounds", async () => {
-    const pixelKeypair = web3.Keypair.generate()
+    const x = 0;
+    const y = 200;
+
+    const [pixelPublicKey] = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("pixel"), Buffer.from([x, y])],
+      program.programId,
+    )
 
     await program.methods
-      .createPixel(0, 200, 0, 0, 255)
+      .createPixel(x, y, 0, 0, 255)
       .accounts({
-        pixel: pixelKeypair.publicKey,
+        pixel: pixelPublicKey,
         user: anchorProvider.wallet.publicKey,
         systemProgram: web3.SystemProgram.programId,
       })
-      .signers([pixelKeypair])
       .rpc()
       .then(
         () => Promise.reject(new Error('Expected to error!')),
         (e: AnchorError) => {
-          // Log is eg. `AnchorError occurred. Error Code: InvalidYCoordinate. Error Number: 6001. Error Message: The given Y co-ordinate is not between 0-99.`
+          // Log is eg. 'AnchorError occurred. Error Code: InvalidYCoordinate. Error Number: 6001. Error Message: The given Y co-ordinate is not between 0-99.'
           assert.ok(e.errorLogs.some(log => log.includes('InvalidYCoordinate') && log.includes('The given Y co-ordinate is not between 0-99.')))
         }
       );
+  })
+
+  it("Does not allow creating the same pixel twice", async () => {
+    const x = 20
+    const y = 20
+
+    const [pixelPublicKey] = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("pixel"), Buffer.from([x, y])],
+      program.programId,
+    )
+
+    // Create the pixel: this should pass
+    await program.methods
+      .createPixel(x, y, 0, 0, 255)
+      .accounts({
+        pixel: pixelPublicKey,
+        user: anchorProvider.wallet.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .rpc()
+
+    // Create the same pixel: this should fail
+    await program.methods
+      .createPixel(x, y, 0, 0, 255)
+      .accounts({
+        pixel: pixelPublicKey,
+        user: anchorProvider.wallet.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .postInstructions([
+        // make the transaction unique
+        web3.SystemProgram.transfer({
+          fromPubkey: anchorProvider.wallet.publicKey,
+          toPubkey: anchorProvider.wallet.publicKey,
+          lamports: 1,
+        })
+      ])
+      .rpc()
+      .then(
+        () => Promise.reject(new Error('Expected to error!')),
+        (e: web3.SendTransactionError) => {
+          // Log is eg. 'Allocate: account Address { address: 6V4qyzgQ9zdDrjiP74hoaece98gLcRt874JFqTsexrQd, base: None } already in use'
+          assert.ok(e.logs.some(log => log.includes(pixelPublicKey.toBase58()) && log.includes('already in use')))
+        }
+      )
+  })
+
+  it("Does not allow passing an incorrect address", async () => {
+    // Generate the PDA for (0, 0)
+    const [pixelPublicKey] = web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("pixel"), Buffer.from([0, 0])],
+      program.programId,
+    )
+
+    // Attempt to use it to create (30, 30)
+    await program.methods
+      .createPixel(30, 30, 0, 0, 255)
+      .accounts({
+        pixel: pixelPublicKey,
+        user: anchorProvider.wallet.publicKey,
+        systemProgram: web3.SystemProgram.programId,
+      })
+      .rpc()
+      .then(
+        () => Promise.reject(new Error('Expected to error!')),
+        (e: web3.SendTransactionError) => {
+          // Log is eg. '5NbE1G4B95BMHrz94jLk3Q1GivRgh9Eyj8mtHss3sVZA's signer privilege escalated'
+          const expectedError = `${pixelPublicKey.toBase58()}'s signer privilege escalated`
+          assert.ok(e.logs.some(log => log === expectedError))
+        }
+      )
   })
 });
