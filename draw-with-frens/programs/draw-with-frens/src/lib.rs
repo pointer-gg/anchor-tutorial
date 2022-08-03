@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("A7Ly2N39Rstzo6ZUBDsdiTjD8rMkdZ6h7ZGrtN5fjRv1");
 
 #[program]
 pub mod draw_with_frens {
