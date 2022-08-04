@@ -46,8 +46,8 @@ export default function Home() {
 
         <ColorSelector selectedColor={selectedColor} setSelectedColor={setSelectedColor} />
 
-        <Canvas />
+        <Canvas program={anchorProgram} />
       </main>
-    </div >
+    </div>
   )
 }
