@@ -34,6 +34,7 @@ export default function Canvas({ program }: Props) {
                   return <Pixel
                     posX={x}
                     posY={y}
+                    program={program}
                     key={x}
                   />
                 })}
