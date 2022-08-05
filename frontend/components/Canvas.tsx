@@ -3,10 +3,12 @@ import { PublicKey } from "@solana/web3.js";
 import clsx from "clsx"
 import { useEffect, useState, useMemo } from "react";
 import { DrawWithFrens } from "../idl/draw_with_frens";
+import { Color } from "../lib/colors";
 import Pixel from "./Pixel"
 
 interface Props {
-  program?: Program<DrawWithFrens>
+  program?: Program<DrawWithFrens>,
+  selectedColor: Color,
 }
 
 type PixelAccount = IdlAccounts<DrawWithFrens>['pixel']
@@ -19,7 +21,7 @@ interface PixelChangedEvent {
   colB: number,
 }
 
-export default function Canvas({ program }: Props) {
+export default function Canvas({ program, selectedColor }: Props) {
   const disabled = !program;
   const [fetchedPixels, setFetchedPixels] = useState<PixelAccount[]>([]);
 
@@ -99,6 +101,7 @@ export default function Canvas({ program }: Props) {
                     posY={y}
                     program={program}
                     pixelData={pixelData}
+                    selectedColor={selectedColor}
                     key={x}
                   />
                 })}
