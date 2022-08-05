@@ -1,4 +1,5 @@
 import { IdlAccounts, Program } from "@project-serum/anchor";
+import { PublicKey } from "@solana/web3.js";
 import clsx from "clsx"
 import { useEffect, useState, useMemo } from "react";
 import { DrawWithFrens } from "../idl/draw_with_frens";
@@ -9,6 +10,14 @@ interface Props {
 }
 
 type PixelAccount = IdlAccounts<DrawWithFrens>['pixel']
+
+interface PixelChangedEvent {
+  posX: number,
+  posY: number,
+  colR: number,
+  colG: number,
+  colB: number,
+}
 
 export default function Canvas({ program }: Props) {
   const disabled = !program;
@@ -34,6 +43,45 @@ export default function Canvas({ program }: Props) {
     })
     return map
   }, [fetchedPixels])
+
+  const getPixelAddress = (posX: number, posY: number) => {
+    const [pixelPublicKey] = PublicKey.findProgramAddressSync(
+      [Buffer.from("pixel"), Buffer.from([posX, posY])],
+      program.programId,
+    )
+    return pixelPublicKey
+  }
+
+  // Listen to PixelChanged events
+  useEffect(() => {
+    if (!program) return;
+
+    const listener = program.addEventListener('PixelChanged', async (event, _slot, _sig) => {
+      const e = event as PixelChangedEvent;
+
+      // Get the latest data from Anchor for this pixel
+      const pixelAddress = await getPixelAddress(e.posX, e.posY);
+      const updatedPixelAccount = await program.account.pixel.fetch(pixelAddress);
+
+      // Update the state
+      setFetchedPixels(pixels => {
+        const newPixels = [...pixels];
+        const index = newPixels.findIndex(p => p.posX === e.posX && p.posY === e.posY);
+        if (index >= 0) {
+          // We already have pixel data at this position, so replace it
+          newPixels[index] = updatedPixelAccount;
+        } else {
+          // We don't have pixel data at this position, so add it
+          newPixels.push(updatedPixelAccount);
+        }
+        return newPixels;
+      })
+    })
+
+    return () => {
+      program.removeEventListener(listener);
+    }
+  }, [program])
 
   return (
     <div className={clsx(disabled && "opacity-25 cursor-not-allowed")}>
