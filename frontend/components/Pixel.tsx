@@ -36,9 +36,18 @@ export default function Pixel({ posX, posY, program, pixelData, selectedColor }:
       .rpc();
   }
 
+  const updatePixel = async () => {
+    await program.methods
+      .updatePixel(selectedColor.r, selectedColor.g, selectedColor.b)
+      .accounts({
+        pixel: getPixelAddress(),
+      })
+      .rpc();
+  }
+
   return <td
     className="h-4 min-w-[1rem]"
     style={{ backgroundColor: color }}
-    onClick={createPixel}
+    onClick={pixelData ? updatePixel : createPixel}
   />
 }
