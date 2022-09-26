@@ -1,3 +1,3 @@
-# Draw With Frens
+# Draw With Frens Frontend
 
-TODO: write readme!
+https://www.pointer.gg/tutorials/solana-anchor
