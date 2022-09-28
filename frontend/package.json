@@ -15,7 +15,7 @@
     "@solana/wallet-adapter-wallets": "^0.17.0",
     "@solana/web3.js": "^1.50.1",
     "clsx": "^1.2.1",
-    "next": "12.1.0",
+    "next": "^12.3.1",
     "react": "17.0.2",
     "react-dom": "17.0.2"
   },
